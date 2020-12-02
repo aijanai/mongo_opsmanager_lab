@@ -1,0 +1,53 @@
+- name: Download agent
+  get_url:
+    url: "http://{{groups.ops_manager[0]}}:8080/download/agent/automation/{{agent_file}}"
+    dest: "/tmp/{{agent_file}}"
+    remote_src: yes
+
+- name: Install agent
+  yum:
+    name: "/tmp/{{agent_file}}"
+    state: present
+
+- name: Check for previous Agent file
+  stat:
+    path: /etc/mongodb-mms/automation-agent.config
+  register: previous_agent_conf
+
+- name: Backup previous Agent file
+  copy:
+    src: /etc/mongodb-mms/automation-agent.config
+    dest: /etc/mongodb-mms/automation-agent.config.backup
+    remote_src: yes
+  when: previous_agent_conf.stat.exists == True
+
+- name: Configure Agent
+  lineinfile:
+    path: /etc/mongodb-mms/automation-agent.config
+    regexp: "{{item.reg}}"
+    line: "{{item.line}}"
+  register: mongodb_config
+  with_items:
+    - {reg: "mmsGroupId=", line: "mmsGroupId={{mms_group_id}}"}
+    - {reg: "mmsApiKey=", line: "mmsApiKey={{mms_apikey}}"}
+    - {reg: "mmsBaseUrl=", line: "mmsBaseUrl={{mms_baseurl}}"}
+
+- name: Ensure data dir
+  file:
+    path: /data
+    state: directory
+    owner: mongod
+    group: mongod
+
+- name: Start and enable Mongo agent service
+  service:
+    name: mongodb-mms-automation-agent
+    state: started
+    enabled: yes
+
+- name: Restart Mongo Agent
+  service:
+    name: mongodb-mms-automation-agent
+    state: restarted
+  when: mongodb_config.changed
+

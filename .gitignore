@@ -1,0 +1,8 @@
+ansible/vault-secret
+*/.vagrant
+ansible/roles/mongodb_opsmanager/files/*.rpm
+ansible/roles/mongodb_opsmanager/files/*.tgz
+ansible/roles/mongodb_opsmanager/files/*.tar.gz
+ansible/*retry
+ansible/roles/mongodb_opsmanager/files/gen.key
+**/.DS_Store

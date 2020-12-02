@@ -1,0 +1,15 @@
+#- hosts: all
+#  vars:
+#    optimize_OS_mongodb: True
+#  roles:
+#    - base
+
+- hosts: mongo_hosts
+  vars:
+    mms_apikey: ""
+    mms_group_id: ""
+    #mms_baseurl: "http://{{groups.ops_manager[0]}}:8080"
+    mms_baseurl: "http://:8080"
+    agent_file: ""
+  roles:
+    - mongodb_agent

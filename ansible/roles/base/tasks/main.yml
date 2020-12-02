@@ -1,0 +1,115 @@
+- name: Check if this is Amazon Linux 2
+  shell: |
+    grep -qr "Amazon Linux" /etc/os-release
+  ignore_errors: yes
+  check_mode: no
+  register: in_amazon_linux
+
+- name: Check if this is Amazon NAT instance
+  shell: |
+    cat /etc/image-id|grep image_name|grep -q amzn-ami-vpc-nat-hvm
+  ignore_errors: yes
+  check_mode: no
+  register: in_nat_instance
+
+- name: Remove Amazon Linux 2 auto yum update
+  replace:
+    path: /etc/update-motd.d/70-available-updates
+    regexp: "^[^#]"
+    replace: "#"
+  when: in_amazon_linux.rc == 0
+
+- name: Install AWS EPEL
+  shell: "amazon-linux-extras install epel"
+  register: install_epel
+  when: in_amazon_linux.rc == 0 and in_nat_instance.rc != 0
+
+- name: Install EPEL
+  yum:
+    name: epel-release
+    state: installed
+    update_cache: true
+  when: in_amazon_linux.rc != 0 or in_nat_instance.rc == 0
+
+- name: Enable sudo autocompletition
+  blockinfile:
+    path: .bashrc
+    block: |
+      complete -cf sudo
+
+- name: Install basic utilities
+  yum:
+    name:
+      - ntp
+      - wget
+      - rsync
+      - dstat
+      - tree
+      - telnet
+      - tcpdump
+      - vim
+      - yum-utils
+      - net-tools
+      - bind-utils
+      - psmisc
+      - numactl
+      - tmux
+    state: installed
+    update_cache: true
+  register: install_utils
+
+- name: Disable DNS lookup
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?UseDNS"
+    line: "UseDNS no"
+  register: ssh_usedns_disable
+
+- name: Disable GSSAPI
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?GSSAPIAuthentication"
+    line: "GSSAPIAuthentication no"
+  register: ssh_gssapi_disable
+
+- name: Restart SSHD
+  service:
+    name: sshd
+    state: restarted
+  when: ssh_gssapi_disable is changed or ssh_usedns_disable is changed
+
+- name: Check if firewalld is present
+  shell: "systemctl list-units --full -all | grep -Fq firewalld.service"
+  register: firewalld_check
+  ignore_errors: true
+
+- name: Disable firewalld
+  service:
+    name: firewalld
+    state: stopped
+    enabled: no
+  when: firewalld_check.rc == 0
+
+- name: Check swap file
+  stat:
+      path: /swap.img
+  register: swap_stat
+
+- block:
+    - name: Create swap file
+      shell: "dd if=/dev/zero of=/swap.img count=1024 bs=1M"
+
+    - name: Format swapfile
+      shell: "mkswap /swap.img"
+
+  when: swap_stat.stat.exists == False
+
+- name: Mount up device by label
+  mount:
+    path: none
+    src: /swap.img
+    fstype: swap
+    state: present
+
+- name: Activate swap
+  shell: "swapon -a"

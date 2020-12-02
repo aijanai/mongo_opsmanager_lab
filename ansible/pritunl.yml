@@ -1,0 +1,5 @@
+- hosts: pritunl
+  roles:
+    - base
+    - docker
+    - pritunl

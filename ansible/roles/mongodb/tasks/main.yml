@@ -1,0 +1,164 @@
+- name: Install Mongo Enterprise dependencies
+  yum:
+    name:
+      - tuned
+      - cyrus-sasl
+      - cyrus-sasl-gssapi
+      - cyrus-sasl-plain
+      - krb5-libs
+      - libcurl
+      - libpcap
+      - lm_sensors-libs
+      - net-snmp
+      - net-snmp-agent-libs
+      - openldap
+      - openssl
+      - rpm-libs
+      - tcp_wrappers-libs
+    state: installed
+    update_cache: true
+  register: install_deps
+
+- block:
+  - name: Create directory for tuned profile
+    file:
+      path: /etc/tuned/no-thp
+      state: directory
+
+  - name: Set limits
+    copy:
+      src: files/99-mongodb-nproc.conf
+      dest: /etc/security/limits.d/99-mongodb-nproc.conf
+
+  - name: Create tuned profile to disable Tuned Huge Page
+    copy:
+      src: files/tuned.conf
+      dest: /etc/tuned/no-thp/tuned.conf
+
+  - name: Enable tuned no-thp profile
+    shell: tuned-adm profile no-thp
+    become: true
+
+  when: optimize_OS_mongodb is defined and optimize_OS_mongodb == true
+
+- name: Install MongoDB
+  yum:
+    name: "{{backing_mongodb_version}}"
+    state: installed
+    update_cache: true
+  register: install_mongodb
+
+- name: Stop and disable mongod service
+  service:
+    name: mongod
+    state: stopped
+    enabled: no
+  when: install_mongodb.changed
+
+- name: Reconfigure MongoDB to listen on all interfaces
+  lineinfile:
+    path: /etc/mongod.conf
+    regexp: '^  bindIp:'
+    line: "  bindIp: 0.0.0.0"
+  register: mongodb_config
+
+- name: Restart MongoDB
+  service:
+    name: mongod
+    state: restarted
+  when: mongodb_config.changed
+
+- block:
+  - name: Add ReplicaSet to MongoDB configuration
+    blockinfile:
+      path: /etc/mongod.conf
+      marker: "### {mark} ANSIBLE MANAGED BLOCK ReplicaSet of MongoDB"
+      block: "replication.replSetName: {{replicaset_name}}"
+    register: mongodb_config
+
+  - name: Restart MongoDB
+    service:
+      name: mongod
+      state: restarted
+    when: mongodb_config.changed
+
+  - name: Waiting for server initialization
+    pause:
+      seconds: 13
+    when: mongodb_config.changed
+
+  - block:
+    - block:
+        - name: Copy keyfile
+          copy:
+            src: files/mongodb.key
+            dest: /etc/mongodb.key
+            mode: 0600
+            owner: mongod
+            group: mongod
+
+        - name: Set keyfile in conf
+          blockinfile:
+            path: /etc/mongod.conf
+            marker: "### {mark} ansible managed block replicaset of mongodb"
+            block: "security.keyFile: /etc/mongodb.key"
+          register: keyfile_loaded
+
+        - name: Restart MongoDB
+          service:
+            name: mongod
+            state: restarted
+          when: keyfile_loaded is changed
+
+      when: auth_replica is defined and auth_replica == True
+
+    - debug:
+        msg: "/usr/bin/mongo --eval 'rs.add(\"{{ inventory_hostname }}:27017\");' {{existing_backing_mongodb_setup}}"
+
+    - name: Add ReplicaSet members to foreign RS
+      shell: |
+        /usr/bin/mongo --eval 'rs.add("{{ inventory_hostname }}:27017");' {{existing_backing_mongodb_setup}}
+
+    when: existing_backing_mongodb_setup is defined
+
+  - block:
+      - name: Check replica set status
+        shell: |
+          mongo --eval 'rs.status().ok;' --host "{{groups.ops_replicaset[0]}}"
+        register: rs_status
+
+      - block:
+        - debug:
+            msg: "mongo --eval 'rs.initiate({_id: \"{{replicaset_name}}\", members:[{_id: 0, host: \"{{inventory_hostname}}:27017\"}]});' --host \"{{groups.ops_replicaset[0]}}\""
+
+        - name: Initialize the replica set
+          shell: |
+            mongo --eval 'rs.initiate({_id: "{{replicaset_name}}", members:[{_id: 0, host: "{{inventory_hostname}}:27017"}]});' --host "{{groups.ops_replicaset[0]}}"
+          when: inventory_hostname == groups.ops_replicaset[0]
+
+        - debug:
+            msg: "/usr/bin/mongo --eval 'rs.add(\"{{ inventory_hostname }}:27017\");' --host \"{{groups.ops_replicaset[0]}}\""
+
+        - name: Add rest of ReplicaSet members
+          shell: |
+            /usr/bin/mongo --eval 'rs.add("{{ inventory_hostname }}:27017");' --host "{{groups.ops_replicaset[0]}}"
+        when: rs_status.stdout_lines[-1] == "0" # no RS set yet
+
+      - block:
+        - debug:
+            msg: "/usr/bin/mongo --eval 'rs.add(\"{{ inventory_hostname }}:27017\");' --host \"{{replicaset_name}}/{{groups.ops_replicaset|join(',')}}\""
+
+        - name: Add ReplicaSet members
+          shell: |
+            /usr/bin/mongo --eval 'rs.add("{{ inventory_hostname }}:27017");' --host "{{replicaset_name}}/{{groups.ops_replicaset|join(',')}}"
+        when: rs_status.stdout_lines[-1] == "1" # a RS already exists
+
+    when: existing_backing_mongodb_setup is not defined
+
+  when: replicaset_enabled is defined and replicaset_enabled == true
+
+- name: Ensure mongod started and in enabled
+  service:
+    name: mongod
+    state: started
+    enabled: yes

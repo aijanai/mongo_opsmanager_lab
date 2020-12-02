@@ -1,0 +1,20 @@
+- name: Check if this is Amazon Linux 2
+  shell: |
+    grep -qr "Amazon Linux" /etc/os-release
+  ignore_errors: yes
+  check_mode: no
+  register: in_amazon_linux
+
+- name: Enable MongoDB Yum Repo for Amazon Linux
+  copy:
+    src: mongodb-enterprise-4.4.aws.repo
+    dest: /etc/yum.repos.d/mongodb-enterprise-4.4.repo
+    mode: 0644
+  when: in_amazon_linux.rc == 0
+
+- name: Enable MongoDB Yum Repo for RHEL
+  copy:
+    src: mongodb-enterprise-4.4.rhel.repo
+    dest: /etc/yum.repos.d/mongodb-enterprise-4.4.repo
+    mode: 0644
+  when: in_amazon_linux.rc != 0

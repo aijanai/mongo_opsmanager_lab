@@ -1,0 +1,26 @@
+- hosts: all
+  vars:
+    optimize_OS_mongodb: True
+  roles:
+    - base
+
+- hosts: ops_replicaset
+  vars:
+    replicaset_enabled: True
+    auth_replica: True
+    replicaset_name: ops-manager
+    #existing_backing_mongodb_setup: "10.171.128.35:27017"
+    #existing_backing_mongodb_setup: "-u root -p Mng_Crt01 10.171.128.35:27017/admin"
+    backing_mongodb_version: "mongodb-enterprise-4.4.2"
+  roles:
+    - mongodb_repo
+    - mongodb
+
+- hosts: ops_manager
+  vars:
+    replicaset_name: ops-manager
+    #auth_opsmanager: "f128344e7038be755956470527d176c8-ba276d663df45c4efcc3552cac22aa8e:f128344e7038be755956470527d176c8-9bdd51080a72f4dc6e9f54c137432793"
+    ops_manager_archive: "mongodb-mms-4.4.5.103.20201104T1729Z-1.x86_64.rpm"
+    available_mongodb_archives: ["mongodb-linux-x86_64-enterprise-rhel70-4.4.2.tgz"]
+  roles:
+    - mongodb_opsmanager

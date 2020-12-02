@@ -1,0 +1,61 @@
+- name: Copy OpsManager
+  copy:
+    src: "files/{{ops_manager_archive}}"
+    dest: "/tmp/{{ops_manager_archive}}"
+
+- name: Install OpsManager
+  yum:
+     name: "/tmp/{{ops_manager_archive}}"
+     state: present
+
+- name: Configure OpsManager
+  lineinfile:
+    path: /opt/mongodb/mms/conf/conf-mms.properties
+    regex: "{{item.reg}}"
+    line: "{{item.line}}"
+  with_items:
+      - {reg: "mongo.mongoUri", line: "mongo.mongoUri=mongodb://{{groups.ops_replicaset|join(',')}}/?maxPoolSize=150&replicaSet={{replicaset_name}}"}
+      - {reg: "mongo.encryptedCredentials" , line: "mongo.encryptedCredentials=false"}
+  register: conf_mms
+  when: auth_opsmanager is not defined
+
+- name: Configure OpsManager with encrypted credentials
+  lineinfile:
+    path: /opt/mongodb/mms/conf/conf-mms.properties
+    regex: "{{item.reg}}"
+    line: "{{item.line}}"
+  with_items:
+      - {reg: "mongo.mongoUri", line: "mongo.mongoUri=mongodb://{{auth_opsmanager}}@{{groups.ops_replicaset|join(',')}}/?maxPoolSize=150&replicaSet={{replicaset_name}}"}
+      - {reg: "mongo.encryptedCredentials" , line: "mongo.encryptedCredentials=true"}
+  register: conf_mms
+  when: auth_opsmanager is defined
+
+- name: Copy Mongo releases
+  copy:
+    src: "files/{{item}}"
+    dest: "/opt/mongodb/mms/mongodb-releases/{{item}}"
+  with_items: "{{available_mongodb_archives}}"
+
+- name: Check for gen.key
+  stat:
+    path: /etc/mongodb-mms/gen.key
+  register: gen_key
+
+- block:
+  - name: Copy gen.key
+    copy:
+      src: files/gen.key
+      dest: /etc/mongodb-mms/gen.key
+  when: gen_key.stat.exists == False
+
+- name: Start OpsManager
+  service:
+    name: mongodb-mms
+    state: started
+    enabled: yes
+
+- name: Restart OpsManager
+  service:
+    name: mongodb-mms
+    state: restarted
+  when: conf_mms is changed

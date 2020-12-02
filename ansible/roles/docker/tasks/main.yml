@@ -1,0 +1,38 @@
+- name: Install Docker
+  yum:
+    name:
+      - docker
+      - python-pip
+    state: installed
+    update_cache: true
+  register: install_docker
+
+- name: Install python-docker module
+  pip:
+    name: docker
+
+- name: Ensure Docker started
+  service:
+    name: docker
+    state: started
+    enabled: yes
+  when: install_docker is succeeded
+
+- name: Create group docker
+  group:
+    name: docker
+    state: present
+
+- name: "Adding user {{ansible_user}} to group Docker"
+  user:
+    name: "{{ansible_user}}"
+    group: docker
+    shell: /bin/bash
+    groups: docker
+    append: yes
+
+- name: Ensure Docker can be accessed
+  file:
+    path: /var/run/docker.sock
+    group: docker
+    mode: 0660

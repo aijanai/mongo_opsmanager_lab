@@ -1,0 +1,72 @@
+- name: Install nginx 
+  yum:
+    state: present
+    update_cache: true
+    name: nginx
+
+- name: Disable default_server
+  lineinfile:
+    path: /etc/nginx/nginx.conf
+    regexp: default_server
+    state: absent
+
+- name: Configure Nginx
+  template:
+    src: templates/pritunl.conf
+    dest: /etc/nginx/conf.d/pritunl.conf
+    owner: nginx
+    group: nginx
+  register: nginx_configure
+
+- name: Restart Nginx
+  service:
+    name: nginx
+    state: restarted
+    enabled: yes
+  when: nginx_configure is succeeded
+
+- name: Ensure Docker started
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Create a MongoDB storage
+  docker_container:
+    name: mongo-pritunl
+    image: mongo:4
+    state: started
+    recreate: no
+    restart: no
+
+- name: Create Pritunl server
+  docker_container:
+    name: pritunl
+    image: jippi/pritunl
+    state: started
+    recreate: no
+    restart: no
+    privileged: yes
+    links: mongo-pritunl
+    ports:
+      - 1194:1194/tcp
+      - 1194:1194/udp
+      - 8880:80
+      - 8443:443
+    env:
+      PRITUNL_MONGODB_URI: mongodb://mongo-pritunl:27017/pritunl 
+
+- name: Enable ip_forward
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: Enable NAT
+  iptables:
+    table: nat
+    chain: POSTROUTING
+    jump: MASQUERADE
+  become: yes

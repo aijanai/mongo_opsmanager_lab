@@ -1,0 +1,175 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+  config.vm.box = "centos/7"
+
+  # config.vm.synced_folder "../data", "/vagrant_data"
+
+
+#  if Vagrant.has_plugin?("vagrant-proxyconf")
+#    config.proxy.http     = "http://192.168.78.115:8080/"
+#    config.proxy.https     = "http://192.168.78.115:8080/"
+#    config.proxy.no_proxy = "localhost,127.0.0.1"
+#  end
+
+
+  config.ssh.private_key_path = ["~/.ssh/id_rsa", "~/.vagrant.d/insecure_private_key"]
+  config.ssh.insert_key = false
+  config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "~/.ssh/authorized_keys"
+
+  config.vm.define :shard1_primary do |server|
+    server.vm.hostname = 'shard1-primary'
+    server.vm.provider :virtualbox do |vb|
+          vb.customize ["modifyvm", :id, "--memory", "512"]
+          vb.customize ["modifyvm", :id, "--cpus", "1"]
+    end
+    server.vm.network :private_network, ip: "192.168.42.100"
+  end
+
+  config.vm.define :shard1_secondary1 do |server|
+    server.vm.hostname = 'shard1-secondary1'
+    server.vm.provider :virtualbox do |vb|
+          vb.customize ["modifyvm", :id, "--memory", "512"]
+          vb.customize ["modifyvm", :id, "--cpus", "1"]
+    end
+    server.vm.network :private_network, ip: "192.168.42.101"
+  end
+
+  config.vm.define :shard1_secondary2 do |server|
+    server.vm.hostname = 'shard1-secondary2'
+    server.vm.provider :virtualbox do |vb|
+          vb.customize ["modifyvm", :id, "--memory", "512"]
+          vb.customize ["modifyvm", :id, "--cpus", "1"]
+    end
+    server.vm.network :private_network, ip: "192.168.42.102"
+  end
+  
+  config.vm.define :shard2_primary do |server|
+    server.vm.hostname = 'shard2-primary'
+    server.vm.provider :virtualbox do |vb|
+          vb.customize ["modifyvm", :id, "--memory", "512"]
+          vb.customize ["modifyvm", :id, "--cpus", "1"]
+    end
+    server.vm.network :private_network, ip: "192.168.42.103"
+  end
+
+  config.vm.define :shard2_secondary1 do |server|
+    server.vm.hostname = 'shard2-secondary1'
+    server.vm.provider :virtualbox do |vb|
+          vb.customize ["modifyvm", :id, "--memory", "512"]
+          vb.customize ["modifyvm", :id, "--cpus", "1"]
+    end
+    server.vm.network :private_network, ip: "192.168.42.104"
+  end
+
+  config.vm.define :shard2_secondary2 do |server|
+    server.vm.hostname = 'shard2-secondary2'
+    server.vm.provider :virtualbox do |vb|
+          vb.customize ["modifyvm", :id, "--memory", "512"]
+          vb.customize ["modifyvm", :id, "--cpus", "1"]
+    end
+    server.vm.network :private_network, ip: "192.168.42.105"
+  end
+
+  config.vm.define :opsmanager do |server|
+    server.vm.hostname = 'opsmanager'
+    server.vm.provider :virtualbox do |vb|
+          vb.customize ["modifyvm", :id, "--memory", "1500"]
+          vb.customize ["modifyvm", :id, "--cpus", "4"]
+    end
+    server.vm.network :private_network, ip: "192.168.42.106"
+  end
+
+#  config.vm.define :opsmanager2 do |server|
+#    server.vm.hostname = 'opsmanager2'
+#    server.vm.provider :virtualbox do |vb|
+#          vb.customize ["modifyvm", :id, "--memory", "1500"]
+#          vb.customize ["modifyvm", :id, "--cpus", "4"]
+#    end
+#    server.vm.network :private_network, ip: "192.168.42.107"
+#  end
+
+  config.vm.define :ops_mongo1 do |server|
+    server.vm.hostname = 'ops-mongo1'
+    server.vm.provider :virtualbox do |vb|
+          vb.customize ["modifyvm", :id, "--memory", "512"]
+          vb.customize ["modifyvm", :id, "--cpus", "1"]
+    end
+    server.vm.network :private_network, ip: "192.168.42.115"
+  end
+
+  config.vm.define :ops_mongo2 do |server|
+    server.vm.hostname = 'ops-mongo2'
+    server.vm.provider :virtualbox do |vb|
+          vb.customize ["modifyvm", :id, "--memory", "512"]
+          vb.customize ["modifyvm", :id, "--cpus", "1"]
+    end
+    server.vm.network :private_network, ip: "192.168.42.116"
+  end
+
+  config.vm.define :ops_mongo3 do |server|
+    server.vm.hostname = 'ops-mongo3'
+    server.vm.provider :virtualbox do |vb|
+          vb.customize ["modifyvm", :id, "--memory", "512"]
+          vb.customize ["modifyvm", :id, "--cpus", "1"]
+    end
+    server.vm.network :private_network, ip: "192.168.42.117"
+  end
+
+#  config.vm.define :shard1_remote_primary do |server|
+#    server.vm.hostname = 'shard1-remote-primary'
+#    server.vm.provider :virtualbox do |vb|
+#          vb.customize ["modifyvm", :id, "--memory", "512"]
+#          vb.customize ["modifyvm", :id, "--cpus", "1"]
+#    end
+#    server.vm.network :private_network, ip: "192.168.42.109"
+#  end
+#
+#  config.vm.define :shard1_remote_secondary1 do |server|
+#    server.vm.hostname = 'shard1-remote-secondary1'
+#    server.vm.provider :virtualbox do |vb|
+#          vb.customize ["modifyvm", :id, "--memory", "512"]
+#          vb.customize ["modifyvm", :id, "--cpus", "1"]
+#    end
+#    server.vm.network :private_network, ip: "192.168.42.110"
+#  end
+#
+#  config.vm.define :shard1_remote_secondary2 do |server|
+#    server.vm.hostname = 'shard1-remote-secondary2'
+#    server.vm.provider :virtualbox do |vb|
+#          vb.customize ["modifyvm", :id, "--memory", "512"]
+#          vb.customize ["modifyvm", :id, "--cpus", "1"]
+#    end
+#    server.vm.network :private_network, ip: "192.168.42.111"
+#  end
+#
+#  config.vm.define :shard2_remote_primary1 do |server|
+#    server.vm.hostname = 'shard2-remote-primary'
+#    server.vm.provider :virtualbox do |vb|
+#          vb.customize ["modifyvm", :id, "--memory", "512"]
+#          vb.customize ["modifyvm", :id, "--cpus", "1"]
+#    end
+#    server.vm.network :private_network, ip: "192.168.42.112"
+#  end
+#
+#  config.vm.define :shard2_remote_secondary1 do |server|
+#    server.vm.hostname = 'shard2-remote-secondary1'
+#    server.vm.provider :virtualbox do |vb|
+#          vb.customize ["modifyvm", :id, "--memory", "512"]
+#          vb.customize ["modifyvm", :id, "--cpus", "1"]
+#    end
+#    server.vm.network :private_network, ip: "192.168.42.113"
+#  end
+#
+#  config.vm.define :shard2_remote_secondary2 do |server|
+#    server.vm.hostname = 'shard2-remote-secondary2'
+#    server.vm.provider :virtualbox do |vb|
+#          vb.customize ["modifyvm", :id, "--memory", "512"]
+#          vb.customize ["modifyvm", :id, "--cpus", "1"]
+#    end
+#    server.vm.network :private_network, ip: "192.168.42.114"
+#  end
+
+end
