@@ -4,12 +4,12 @@
 #  roles:
 #    - base
 
-- hosts: mongo_hosts
+- hosts: mongo
   vars:
     mms_apikey: ""
     mms_group_id: ""
     #mms_baseurl: "http://{{groups.ops_manager[0]}}:8080"
-    mms_baseurl: "http://:8080"
-    agent_file: ""
+    mms_baseurl: "http://opsmanager:8080"
+    agent_file: "mongodb-mms-automation-agent-manager-10.14.16.6437-1.x86_64.rhel7.rpm"
   roles:
     - mongodb_agent
