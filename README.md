@@ -41,7 +41,7 @@ Make sure to add hostname mapping in `/etc/hosts` before continuing since hosts 
 Now configure Ops Manger server and its RS:
 ```
 cd ansible
-sudo ansible-playbook -i mongo.hosts mongo_ops.yml
+sudo ansible-playbook -i mongo.local mongo_ops.yml
 ```
 
 Wait for Ops Manager to come up, takes some minutes due to first run schema initializations. You can `tail -f /opt/mongodb/mms/logs/*log` for updates.
@@ -51,6 +51,6 @@ Then, surf to `http://opsmanager:8080/`, add first user and configure Ops Manage
 After the server has been correctly initialized, create a new managed cluster:
 1. Generate API key and take note of mms base url and cluster id.
 2. Fill these info in `ansible/mongo_agent.yml`.
-3. Run `ansible-playbook -i mongo.hosts mongo_agent.yml`
+3. Run `ansible-playbook -i mongo.local mongo_agent.yml`
 
 Verify the agents are started on the web UI.
