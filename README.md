@@ -2,7 +2,7 @@
 
 Provisions Ops Manager (from scratch or from existing setup) and its agent onboard of nodes.
 
-Full manual at: https://docs.google.com/document/d/1MoAGrNox3NRJu4dUhUhY8jWEUr_UFQ8mHbTGCejMhic/edit?usp=sharing
+Full manual at: [https://docs.google.com/document/d/1MoAGrNox3NRJu4dUhUhY8jWEUr_UFQ8mHbTGCejMhic/edit?usp=sharing](https://docs.google.com/document/d/1MoAGrNox3NRJu4dUhUhY8jWEUr_UFQ8mHbTGCejMhic/edit?usp=sharing)
 
 
 This repo includes a Vagrant lab for demo purposes:
@@ -15,8 +15,8 @@ This repo includes a Vagrant lab for demo purposes:
 
 ### Vagrant plugin requirements
 
-* `vagrant-proxyconf` allows guests to go to the Internet, necessary in heavily proxied environments like Poste.
-* `vagrant-hostmanager` manages the hosts file on guest machines ((reference)[https://github.com/devopsgroup-io/vagrant-hostmanager]).
+* `vagrant-proxyconf` allows guests to go to the Internet, necessary in heavily proxied environments.
+* `vagrant-hostmanager` manages the hosts file on guest machines ([reference](https://github.com/devopsgroup-io/vagrant-hostmanager])).
 * `vagrant-hostsupdater` adds an entry to your /etc/hosts file on the host system.
 * `vagrant-scp` is nice to copy stuff from/to guests.
 
@@ -34,9 +34,9 @@ cd demo_infrastructure
 vagrant up # watch out for sudo password requests
 cd ..
 ```
-Run `vagrant hostmanager` to update guests' `hosts` files.
+Run `vagrant hostmanager` to update guests' `hosts` files for VMs mutual visibility.
 
-Make sure to add hostname mapping in `/etc/hosts` before continuing since hosts need mutual visibility by name. `vagrant-hostmanager` helps in this.
+Run `vagrant hostsupdater` to add hostname mapping in your `/etc/hosts` before continuing since the local playbooks refer to the hosts by name. 
 
 Now configure Ops Manger server and its RS:
 ```
