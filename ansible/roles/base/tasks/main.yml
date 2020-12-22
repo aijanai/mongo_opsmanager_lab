@@ -31,7 +31,7 @@
     update_cache: true
   when: in_amazon_linux.rc != 0 or in_nat_instance.rc == 0
 
-- name: Enable sudo autocompletition
+- name: Enable sudo autocompletion
   blockinfile:
     path: .bashrc
     block: |
